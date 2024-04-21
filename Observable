@@ -1,0 +1,47 @@
+local Subscription = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/Subscription"))()
+local DuckTypeUtils = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/DuckTypeUtils"))()
+
+local ENABLE_STACK_TRACING = false
+
+local Observable = {}
+Observable.ClassName = "Observable"
+Observable.__index = Observable
+
+function Observable.isObservable(item)
+	return DuckTypeUtils.isImplementation(Observable, item)
+end
+
+function Observable.new(onSubscribe)
+	assert(type(onSubscribe) == "function", "Bad onSubscribe")
+
+	return setmetatable({
+		_source = ENABLE_STACK_TRACING and debug.traceback() or "";
+		_onSubscribe = onSubscribe;
+	}, Observable)
+end
+
+function Observable:Pipe(transformers)
+	assert(type(transformers) == "table", "Bad transformers")
+
+	local current = self
+	for _, transformer in pairs(transformers) do
+		assert(type(transformer) == "function", "Bad transformer")
+		current = transformer(current)
+		assert(Observable.isObservable(current), "Transformer must return an observable")
+	end
+
+	return current
+end
+
+function Observable:Subscribe(fireCallback, failCallback, completeCallback)
+	local sub = Subscription.new(fireCallback, failCallback, completeCallback)
+	local cleanup = self._onSubscribe(sub)
+
+	if cleanup then
+		sub:_giveCleanup(cleanup)
+	end
+
+	return sub
+end
+
+return Observable
