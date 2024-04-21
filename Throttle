@@ -1,4 +1,4 @@
-local require = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/ThrottleFunctions"))().load(script)
+local require = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/ThrottleFunctions"))()
 local ThrottledFunction = require("ThrottledFunction")
 
 local function throttle(timeoutInSeconds, func, throttleConfig)
