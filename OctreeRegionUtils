@@ -9,9 +9,7 @@
 	@class OctreeRegionUtils
 ]=]
 
-local require = require(script.Parent.loader).load(script)
-
-local Draw = require("Draw")
+local Draw = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/Draw"))()
 
 local EPSILON = 1e-6
 local SQRT_3_OVER_2 = math.sqrt(3)/2
