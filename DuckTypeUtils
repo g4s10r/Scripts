@@ -1,0 +1,34 @@
+local DuckTypeUtils = {}
+
+function DuckTypeUtils.isImplementation(template, target)
+	assert(type(template) == "table", "Bad template")
+
+	return type(target) == "table"
+		and (getmetatable(target) == template or DuckTypeUtils._checkInterface(template, target))
+end
+
+function DuckTypeUtils._checkInterface(template, target)
+	local targetMetatable = getmetatable(target)
+	local templateMetatable = getmetatable(template)
+	if targetMetatable and type(targetMetatable.__index) == "function" then
+		if templateMetatable then
+			return targetMetatable.__index == templateMetatable.__index
+		end
+
+		return false
+	end
+
+	for key, value in pairs(template) do
+		if type(value) == "function" and type(target[key]) ~= "function" then
+			return false
+		end
+	end
+
+	if templateMetatable and type(templateMetatable.__index) == "table" then
+		return DuckTypeUtils._checkInterface(templateMetatable.__index, target)
+	end
+
+	return true
+end
+
+return DuckTypeUtils
