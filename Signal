@@ -1,74 +1,102 @@
--- Stolen from vozoid
+local USE_GOOD_SIGNAL_ONLY = true
 
-local newInstance = Instance.new
-local setmetatable = setmetatable
-
-local Signal = {}
-local Connection = {}
-
-Signal.__index = Signal
-Connection.__index = Connection
-
-function Connection.new(signal, callback)
-    local connection = signal._signal:Connect(callback)
-
-    signal._count += 1
-    signal.Active = true
-
-    return setmetatable({
-        Connected = true,
-        _signal = signal,
-        _connection = connection
-    }, Connection)
+if USE_GOOD_SIGNAL_ONLY then
+	return loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/GoodSignal"))()
 end
 
-function Connection:Disconnect()
-    self._connection:Disconnect()
-    self.Connected = false
+local HttpService = game:GetService("HttpService")
 
-    self._signal._count -= 1
-    self._signal.Active = self._signal._count > 0
+local ENABLE_TRACEBACK = false
+
+local Signal = {}
+Signal.__index = Signal
+Signal.ClassName = "Signal"
+
+function Signal.isSignal(value)
+	return type(value) == "table"
+		and getmetatable(value) == Signal
 end
 
 function Signal.new()
-    local bindableEvent = newInstance("BindableEvent")
+	local self = setmetatable({}, Signal)
 
-    return setmetatable({
-        Active = false,
-        _bindableEvent = bindableEvent,
-        _signal = bindableEvent.Event,
-        _count = 0,
-        _onConnects = {}
-    }, Signal)
-end
+	self._bindableEvent = Instance.new("BindableEvent")
+	self._argMap = {}
+	self._source = ENABLE_TRACEBACK and debug.traceback() or ""
 
-function Signal:OnConnect(callback)
-    self._onConnects[#self._onConnects + 1] = callback 
+	self._bindableEvent.Event:Connect(function(key)
+		self._argMap[key] = nil
+
+		if (not self._bindableEvent) and (not next(self._argMap)) then
+			self._argMap = nil
+		end
+	end)
+
+	return self
 end
 
 function Signal:Fire(...)
-    self._bindableEvent:Fire(...)
+	if not self._bindableEvent then
+		warn(("Signal is already destroyed. %s"):format(self._source))
+		return
+	end
+
+	local args = table.pack(...)
+
+	local key = HttpService:GenerateGUID(false)
+	self._argMap[key] = args
+
+	self._bindableEvent:Fire(key)
 end
 
-function Signal:Connect(callback)
-    for _, connect_callback in next, self._onConnects do
-        connect_callback()
-    end
-    
-    return Connection.new(self, callback)
+function Signal:Connect(handler)
+	if not (type(handler) == "function") then
+		error(("connect(%s)"):format(typeof(handler)), 2)
+	end
+
+	return self._bindableEvent.Event:Connect(function(key)
+		local args = self._argMap[key]
+		if args then
+			handler(table.unpack(args, 1, args.n))
+		else
+			error("Missing arg data, probably due to reentrance.")
+		end
+	end)
+end
+
+function Signal:Once(handler)
+	if not (type(handler) == "function") then
+		error(("once(%s)"):format(typeof(handler)), 2)
+	end
+
+	return self._bindableEvent.Event:Once(function(key)
+		local args = self._argMap[key]
+		if args then
+			handler(table.unpack(args, 1, args.n))
+		else
+			error("Missing arg data, probably due to reentrance.")
+		end
+	end)
 end
 
 function Signal:Wait()
-    return self._signal:Wait()
+	local key = self._bindableEvent.Event:Wait()
+	local args = self._argMap[key]
+	if args then
+		return table.unpack(args, 1, args.n)
+	else
+		error("Missing arg data, probably due to reentrance.")
+		return nil
+	end
 end
 
 function Signal:Destroy()
-    self._bindableEvent:Destroy()
-    self.Active = false
-    setmetatable(self, nil)
-end
+	if self._bindableEvent then
+		self._bindableEvent:Destroy()
+		self._bindableEvent = nil
+	end
 
-Signal.DisconnectAll = Signal.Destroy
-Signal.Disconnect = Signal.Destroy
+	setmetatable(self, nil)
+end
 
 return Signal
