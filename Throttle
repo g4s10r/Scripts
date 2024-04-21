@@ -1,5 +1,4 @@
-local require = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/ThrottleFunctions"))()
-local ThrottledFunction = require("ThrottledFunction")
+local ThrottledFunction = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/ThrottleFunctions"))()
 
 local function throttle(timeoutInSeconds, func, throttleConfig)
 	assert(type(timeoutInSeconds) == "number", "timeoutInSeconds is not a number")
