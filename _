@@ -1,9 +1,10 @@
 ------------ ------ {[ Services&Declarations ]} ------ ------------ 
 
 local Services = setmetatable({}, {
-    __index = function(Service)
-        table.insert(self, Service);
-        return self[Service];
+    __index = function(self, Service)
+        self[tostring(Service)] = game:GetService(tostring(Service));
+        return self[tostring(Service)];
+    end
 })
 local RunService = Services.RunService;
 local Players    = Services.Players;
@@ -134,7 +135,7 @@ function Base:Update()
     end
 end
 
-ESP:Add(Model: Instance, Options: table)
+function ESP:Add(Model: Instance, Options: table)
     if not (Model) or (ESP.Settings.NilCheck and not Model:IsDescendantOf(Workspace)) then
         return warn("You stupid nigger")
     end
