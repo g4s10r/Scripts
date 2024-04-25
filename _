@@ -1,0 +1,235 @@
+------------ ------ {[ Services&Declarations ]} ------ ------------ 
+
+local Services = setmetatable({}, {
+    __index = function(Service)
+        table.insert(self, Service);
+        return self[Service];
+})
+local RunService = Services.RunService;
+local Players    = Services.Players;
+local Workspace  = Services.Workspace;
+local Camera     = Workspace.CurrentCamera;
+local Client     = Players.LocalPlayer;
+
+local ViewportSize = Camera.ViewportSize;
+local worldToView  = Camera.WorldToViewportPoint
+
+local ESP = {
+    Settings = {
+        Enabled = false,
+        TeamCheck = false,
+        NilCheck = false,
+        UseTeamColors = false,
+        TeamExceptions = false,
+        Exceptions = {},
+        Name = false,
+        Distance = false,
+        Health = false,
+        Text = {
+            Name = false,
+            Distance = false,
+            Health = false,
+            Size = 15,
+            Font = 1,
+            Center = true,
+            Outline = true
+        }
+    },
+    Objects = setmetatable({}, {__mode="kv"})
+};
+ESP.__index = ESP;
+
+local function Draw(Type, Properties)
+    local New = Drawing.new(Type);
+    
+    for Prop, Vl in next, Properties or {} do
+        New[Prop] = Vl;
+    end
+    
+    return New
+end
+
+function ESP:Toggle(bool)
+    self.Settings.Enabled = bool
+    if not bool then
+        for i,v in pairs(self.Objects) do
+            for i,v in pairs(v.Components) do
+                v.Visible = false
+            end
+        end
+    end
+end
+
+function ESP:ToScreen(Position: Vector3) -- Vector3 to Screen pos (v2)
+    local Position = typeof(Position) ~= "CFrame" and Position or Position.Position;
+    local Vector, OnScreen = WorldToViewportPoint(Camera, Position);
+    
+    return Vector2.new(Vector.X, Vector.Y), OnScreen
+end
+
+function ESP:GetDistance(Position: Vector3, isMetric: bool) -- Distance from cam pos
+    isMetric = isMetric or true
+    local Magnitude = (Camera.CFrame.Position - Position).Magnitude;
+    if (isMetric) then
+        return math.round(Magnitude * 0.28)
+    else
+        return math.round(Magnitude)
+    end
+end
+
+function ESP:GetTeamColor(Player: player)
+    return game:GetService("Teams"):FindFirstChild(Player.Team).TeamColor.Color
+end
+
+function ESP:GetHealth(Model: Instance) -- Returns health, max health and h/mh * 100, if it finds a humanoid
+    local Humanoid = Model:FindFirstChildOfClass("Humanoid")
+    
+    if Humanoid then
+        return Humanoid.Health, Humanoid.MaxHealth, (Humanoid.Health / Humanoid.MaxHealth) * 100
+    end
+    
+    return 100, 100, 100
+end
+
+function ESP:GetPlayerFromCharacter(Model: Instance) -- Self explaining, only if character is linked to the client
+    return Players:GetPlayerFromCharacter(Model)
+end
+
+function ESP:IsMate(Player: Player) -- Self explaining
+    return Client.Team == Player.Team
+end
+
+----------------- -- [ ACTUAL Stuff ] -- -----------------
+
+local Base = {};
+Base.__index = Base;
+
+function Base:Remove()
+    ESP.Objects[self.Object] = nil
+    for i,v in pairs(self.Components) do
+        v.Visible = false
+        v:Remove()
+        self.Components[i] = nil
+    end
+end
+
+function Base:Update()
+    if (ESP.Settings.Enabled) then
+        if not self.PrimaryPart then
+            return self:Remove()
+        end
+
+        if (ESP.Settings.Name) then
+            local Vec, OS = ESP:ToScreen(self.PrimaryPart.Position) 
+            local Name = self.Components.Name;
+            if (OS) then
+                Name.Visible = true;
+                Name.Position = Vec;
+                Name.Text = self.Name;
+                Name.Color = self.Color;
+            else
+                Name.Visible = false;
+            end
+        end
+    end
+end
+
+ESP:Add(Model: Instance, Options: table)
+    if not (Model) or (ESP.Settings.NilCheck and not Model:IsDescendantOf(Workspace)) then
+        return warn("You stupid nigger")
+    end
+
+    local Plr = ESP:GetPlayerFromCharacter(Model);
+    local New = setmetatable({
+        Name = Plr.Name,
+        Type = "Text",
+        Color = (ESP.Options.UseTeamColors and ESP:GetTeamColor(Plr)) or Options.Color or Color3.new(1, 1, 1),
+        Size = Options.Size or 15,
+        Object = Model,
+        Player = Options.Player or Plr,
+        Primary = Options.Primary or (Model.PrimaryPart or Model:FindFirstChild("HumanoidRootPart")),
+        Components = {},
+        Enabled = Options.Enabled,
+        Nil = Options.NilCheck
+    }, Base)
+
+    if (self.Objects[Model]) then
+        self.Objects[Model]:Remove()
+    end
+
+    New.Components["Name"] = Draw("Text", {
+        Text = self.Name,
+        Color = self.Color,
+        Size = self.Size,
+        Center = ESP.Settings.Text.Center,
+        Outline = ESP.Settings.Text.Outline,
+        Visible = self.Enabled
+    })
+    self.Objects[Model] = New;
+    Model.AncestryChanged:Connect(function(_, Parent)
+        if Parent == nil then
+            New:Remove();
+        end
+    end)
+    Model:GetPropertyChangedSignal("Parent"):Connect(function()
+        if Model.Parent == nil then
+            New:Remove();
+        end
+    end)
+
+    local Humanoid = Model:FindFirstChildOfClass("Humanoid")
+	if Humanoid then
+        Humanoid.Died:Connect(function()
+            New:Remove();
+		end)
+    end
+end
+
+local function CharAdded(Char)
+    local Plr = Players:GetPlayerFromCharacter(Char)
+    if not Char:FindFirstChild("HumanoidRootPart") then
+        local Connection = Char.ChildAdded:Connect(function(Part)
+            if Part.Name == "HumanoidRootPart" then
+                Connection:Disconnect()
+                ESP:Add(Char, {
+                    Name = Plr.Name,
+                    Player = Plr,
+                    PrimaryPart = Part
+                })
+            end
+        end)
+    else
+        ESP:Add(Char, {
+            Name = Plr.Name,
+            Player = Plr,
+            PrimaryPart = Char.HumanoidRootPart
+        })
+    end
+end
+
+local function PlayerAdded(Plr)
+    Plr.CharacterAdded:Connect(CharAdded)
+    if Plr.Character then
+        coroutine.wrap(CharAdded)(Plr.Character)
+    end
+end
+
+Players.PlayerAdded:Connect(PlayerAdded)
+for _, Plr in next, Players:GetPlayers() do
+    if Plr ~= Client then
+        PlayerAdded(Plr)
+    end
+end
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, Lib in (ESP.Settings.Enabled)(ESP.Objects) do
+        if Lib.Update then
+            local Success, Err = pcall(Lib.Update, Lib)
+            if not Success then
+                warn("[Error]", Err, Lib.Object:GetFullName())
+            end
+        end
+    end
+end)
+
+return ESP;
