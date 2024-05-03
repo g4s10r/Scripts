@@ -35,13 +35,13 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.22,
+    VERSION = "Test 1.01",
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
 
 local function ToRGB(color)
-    print(color)
+    print("The color is", color)
     return Color3.fromRGB(color.r * 255, color.g * 255, color.b * 255)
 end
 
