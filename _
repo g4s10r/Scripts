@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.11,
+    VERSION = 1.12,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -79,8 +79,8 @@ function ESP:IsMate(Player: Player)
     return Client.Team == Player.Team
 end
 
-function ESP:GetBox(obj)
-    return self.Objects[obj]
+function ESP:GetBox(Obj)
+    return self.Objects[Obj]
 end
 
 function ESP:Toggle(bool)
@@ -246,7 +246,7 @@ function ESP:Add(Obj, Options)
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 
-    self.Objects[obj] = box
+    self.Objects[Obj] = box
     
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
