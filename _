@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.12,
+    VERSION = 1.13,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -127,16 +127,17 @@ end
 
 function Drawings:Update()
     if not self.PrimaryPart then
-        --warn("not supposed to print", self.Object)
         return self:Remove()
     end
+    print("Self is", self)
 
     local color = (ESP.Settings.Checks.UseTeamColors and ESP:GetTeamColor(self.Player)) or (self.Color) or (ESP.Settings.Value.Color)
-
+    print("Color is", color)
     local Check = true;
-    if (self.Player and not ESP.Checks.IsTeamMate and ESP:IsTeamMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
+    if (self.Player and not ESP.Checks.TeamCheck and ESP:IsTeamMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
         Check = false;
     end
+    print("Check value is", Check)
 
     if not Check then
         for _, Comp in next, self.Components do
@@ -207,7 +208,7 @@ function ESP:Add(Obj, Options)
         return string.format('Object "%s" doesnt have a parent', Obj.Name)
     end
 
-    local box = setmetatable({
+    local NewBox = setmetatable({
         Name = Options.Name or Obj.Name,
         Type = "Box",
         Color = Options.Color,
@@ -223,41 +224,36 @@ function ESP:Add(Obj, Options)
         self:GetBox(Obj):Remove()
     end
 
-    box.Components["Quad"] = Draw("Quad", {
+    NewBox.Components["Quad"] = Draw("Quad", {
         Thickness = self.Thickness,
         Color = color,
         Transparency = 1,
         Filled = false,
         Visible = self.Enabled and self.Settings.Values.Boxes
     })
-    box.Components["Name"] = Draw("Text", {
-		Text = box.Name,
-		Color = box.Color,
+    NewBox.Components["Name"] = Draw("Text", {
+		Text = NewBox.Name,
+		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
         Size = 16,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
-	box.Components["Distance"] = Draw("Text", {
-		Color = box.Color,
+	NewBox.Components["Distance"] = Draw("Text", {
+		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
         Size = 16,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 
-    self.Objects[Obj] = box
+    self.Objects[Obj] = NewBox
     
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
             PlayerSignal:Fire(Obj)
         end
     end)
-    -- Obj:GetPropertyChangedSignal("Parent"):Connect(function()
-    --     if Obj.Parent == nil then
-    --         PlayerSignal:Fire(Obj)
-    --     end
-    -- end)
 
     local PlayerHumanoid = Obj:FindFirstChildOfClass("Humanoid")
 	if PlayerHumanoid then
@@ -266,7 +262,7 @@ function ESP:Add(Obj, Options)
 		end)
     end
 
-    return box
+    return NewBox
 end
 
 PlayerSignal:Connect(function(Character)
