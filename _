@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.25,
+    VERSION = 1.26,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -137,16 +137,11 @@ function Drawings:Update()
     if not self.PrimaryPart then
         return self:Remove()
     end
-    print("Self is", self)
-
-    print(ESP:GetTeamColor(self.Player))
-
+    
     local Color = (ToRGB(ESP:GetTeamColor(self.Player)) and ESP.Settings.Checks.UseTeamColors) or (self.Color) or (ESP.Settings.Value.Color)
-
-    print("Coloree is", Color, ToRGB(ESP:GetTeamColor(self.Player)))
     
     local Check = true;
-    if (self.Player and not ESP.Checks.TeamCheck and ESP:IsMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
+    if (self.Player and not ESP.Settings.Checks.TeamCheck and ESP:IsMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
         Check = false;
     end
 
@@ -159,7 +154,7 @@ function Drawings:Update()
         return
     end
 
-    --calculations--
+    ------- { CALCULATIONS
     local CF = self.PrimaryPart.CFrame
     local Size = self.Size
     local Locations = {
