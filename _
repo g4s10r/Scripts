@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.29,
+    VERSION = 1.30,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -255,6 +255,10 @@ function ESP:Add(Obj, Options)
 
     self.Objects[Obj] = NewBox
     
+    NewBox.PrimaryPart:GetPropertyChangedSignal("CFrame"):Connect(function()
+        PlayerSignal:Fire(NewBox.Player);
+    end)
+
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
             PlayerSignal:Fire(NewBox.Player)
