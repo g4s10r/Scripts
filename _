@@ -35,14 +35,22 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = "Test 1.02",
+    VERSION = 1.23,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
 
 local function ToRGB(color)
-    print("The color is", color)
     return Color3.fromRGB(color.r * 255, color.g * 255, color.b * 255)
+end
+
+function ESP:GetTeamColor(Player: player)
+    local Team = game:GetService("Teams"):FindFirstChild(tostring(Player.Team));
+    if Team ~= nil then
+        return Team.TeamColor.Color
+    else
+        return Color3.new(1, 1, 1)
+    end
 end
 
 function ESP:ToScreen(Position: Vector3) -- Vector3 to Screen pos (v2)
@@ -59,15 +67,6 @@ function ESP:GetDistance(Position: Vector3, isMetric: bool) -- Distance from cam
         return math.round(Magnitude * 0.28)
     else
         return math.round(Magnitude)
-    end
-end
-
-function ESP:GetTeamColor(Player: player)
-    local Team = game:GetService("Teams"):FindFirstChild(tostring(Player.Team));
-    if Team ~= nil then
-        return Team.TeamColor.Color
-    else
-        return Color3.new(1, 1, 1)
     end
 end
 
