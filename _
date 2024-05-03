@@ -154,6 +154,7 @@ function Drawings:Remove()
 end
 
 function Drawings:Update()
+    table.foreach(self, print)
     if not (self.PrimaryPart) then
         return self:Remove()
     end
