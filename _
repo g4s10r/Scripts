@@ -35,13 +35,13 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.23,
+    VERSION = 1.24,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
 
-local function ToRGB(color)
-    return Color3.fromRGB(color.r * 255, color.g * 255, color.b * 255)
+local function ToRGB(Color)
+    return Color3.fromRGB(Color.R * 255, Color.G * 255, Color.B * 255)
 end
 
 function ESP:GetTeamColor(Player: player)
@@ -141,7 +141,7 @@ function Drawings:Update()
 
     local Color = (ToRGB(ESP:GetTeamColor(self.Player) and ESP.Settings.Checks.UseTeamColors)) or (self.Color) or (ESP.Settings.Value.Color)
 
-    print("Color is", Color)
+    print("Coloree is", Color, ToRGB(ESP:GetTeamColor(self.Player))
     
     local Check = true;
     if (self.Player and not ESP.Checks.TeamCheck and ESP:IsMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
