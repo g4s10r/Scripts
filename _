@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.28,
+    VERSION = 1.29,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -144,8 +144,6 @@ function Drawings:Update()
     if (self.Player) and ((not ESP.Settings.Checks.TeamCheck) or ESP.Settings.Checks.TeamCheck and ESP:IsMate(self.Player)) and (self.Enabled) and workspace:IsAncestorOf(self.PrimaryPart) then
         Check = true;
     end
-
-    print("Check value is", Check)
 
     if not Check then
         for _, Comp in next, self.Components do
@@ -278,8 +276,8 @@ PlayerSignal:Connect(function(Plr)
 end)
 
 CameraSignal:Connect(function()
-    for _, Plr in next, Drawings do
-	    Drawings.Update(Drawings[Plr])
+    for _, Plr in next, ESP.Objects do
+	    Drawings.Update(Plr)
     end
 end)
 
