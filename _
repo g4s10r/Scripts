@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.24,
+    VERSION = 1.25,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -139,9 +139,11 @@ function Drawings:Update()
     end
     print("Self is", self)
 
-    local Color = (ToRGB(ESP:GetTeamColor(self.Player) and ESP.Settings.Checks.UseTeamColors)) or (self.Color) or (ESP.Settings.Value.Color)
+    print(ESP:GetTeamColor(self.Player))
 
-    print("Coloree is", Color, ToRGB(ESP:GetTeamColor(self.Player))
+    local Color = (ToRGB(ESP:GetTeamColor(self.Player)) and ESP.Settings.Checks.UseTeamColors) or (self.Color) or (ESP.Settings.Value.Color)
+
+    print("Coloree is", Color, ToRGB(ESP:GetTeamColor(self.Player)))
     
     local Check = true;
     if (self.Player and not ESP.Checks.TeamCheck and ESP:IsMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
