@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.31,
+    VERSION = 1.32,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -115,6 +115,26 @@ local function Draw(Type, Properties)
     end
     
     return New
+end 
+
+local function IsAlive(Plr: player)
+    if (Plr.Character ~= nil) then
+        if (Plr.Character:IsDescendantOf(game)) then
+            if (Plr.Character:FindFirstChild("Humanoid")) then
+                if (Plr.Character.Humanoid.Health > 0) then
+                    return true
+                else
+                    return false
+                end
+            else
+                return false
+            end
+        else
+            return false
+        end
+    else
+        return false
+    end
 end 
 
 ----------------- -- [ ACTUAL Stuff ] -- -----------------
@@ -242,23 +262,18 @@ function ESP:Add(Obj, Options)
 		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
-        Size = 14,
+        Size = 12,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 	NewBox.Components["Distance"] = Draw("Text", {
 		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
-        Size = 14,
+        Size = 12,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 
     self.Objects[Obj] = NewBox
-    print(NewBox.PrimaryPart)
-    NewBox.PrimaryPart:GetPropertyChangedSignal("Position"):Connect(function()
-        print("selam cano")
-        PlayerSignal:Fire(NewBox.Player);
-    end)
 
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
@@ -266,9 +281,16 @@ function ESP:Add(Obj, Options)
         end
     end)
 
-    local PlayerHumanoid = Obj:FindFirstChildOfClass("Humanoid")
-	if PlayerHumanoid then
-        PlayerHumanoid.Died:Connect(function()
+    local Primary = NewBox.PrimaryPart;
+    print(Primary:GetFullName())
+    Primary:GetPropertyChangedSignal("Position"):Connect(function()
+        print("selam cano")
+        PlayerSignal:Fire(NewBox.Player);
+    end)
+
+    local Humanoid = Obj:FindFirstChildOfClass("Humanoid")
+	if Humanoid then
+        Humanoid.Died:Connect(function()
             PlayerSignal:Fire(NewBox.Player)
 		end)
     end
@@ -288,6 +310,35 @@ end)
 
 Camera:GetPropertyChangedSignal("CFrame"):Connect(function()
     CameraSignal:Fire();
+end)
+
+for _, Plr in next, Players:GetPlayers() do
+    if Plr ~= Client and IsAlive(Plr) then
+        local Character = Plr.Character or Plr.CharacterAdded:Wait();
+        ESP:Add(Character, {
+            Name = Character.Name,
+            Color = ESP.Settings.Values.Color,
+            Size = ESP.Settings.Values.BoxSize,
+            Object = Character,
+            Player = Plr,
+            PrimaryPart = Character.HumanoidRootPart,
+            Enabled = true,
+        })
+    end
+end
+
+Players.PlayerAdded:Connect(function(Plr)
+    Plr.CharacterAdded:Connect(function(Character)
+        ESP:Add(Character, {
+            Name = Character.Name,
+            Color = ESP.Settings.Values.Color,
+            Size = ESP.Settings.Values.BoxSize,
+            Object = Character,
+            Player = Plr,
+            PrimaryPart = Character.HumanoidRootPart,
+            Enabled = true,
+        })
+    end)
 end)
 
 RunService:BindToRenderStep("CurCamUpdate", 5, function()
