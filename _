@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.27,
+    VERSION = 1.28,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -194,12 +194,12 @@ function Drawings:Update()
         if Vis5 then
             self.Components.Name.Visible = true
             self.Components.Name.Position = Vector2.new(TagPos.X, TagPos.Y)
-            self.Components.Name.Text = self.Name
+            self.Components.Name.Text = string.format("[ %s ]", self.Name)
             self.Components.Name.Color = Color
             
             self.Components.Distance.Visible = true
             self.Components.Distance.Position = Vector2.new(TagPos.X, TagPos.Y + 14)
-            self.Components.Distance.Text = string.format("%s m away", tostring(ESP:GetDistance(CF.p)))
+            self.Components.Distance.Text = string.format("[ %s meters ]", tostring(ESP:GetDistance(CF.p)))
             self.Components.Distance.Color = Color
         else
             self.Components.Name.Visible = false
@@ -244,14 +244,14 @@ function ESP:Add(Obj, Options)
 		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
-        Size = 16,
+        Size = 14,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 	NewBox.Components["Distance"] = Draw("Text", {
 		Color = NewBox.Color,
 		Center = true,
 		Outline = true,
-        Size = 16,
+        Size = 14,
         Visible = self.Enabled and self.Settings.Values.Names
 	})
 
@@ -259,27 +259,28 @@ function ESP:Add(Obj, Options)
     
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
-            PlayerSignal:Fire(Obj)
+            PlayerSignal:Fire(NewBox.Player)
         end
     end)
 
     local PlayerHumanoid = Obj:FindFirstChildOfClass("Humanoid")
 	if PlayerHumanoid then
         PlayerHumanoid.Died:Connect(function()
-            PlayerSignal:Fire(Obj)
+            PlayerSignal:Fire(NewBox.Player)
 		end)
     end
 
     return NewBox
 end
 
-PlayerSignal:Connect(function(Character)
-	local Plr = ESP:GetPlayerFromCharacter(Character);
-    print("Player signal fired! Player:", Plr.Name)
+PlayerSignal:Connect(function(Plr)
+    Drawings.Update(Drawings[Plr])
 end)
 
 CameraSignal:Connect(function()
-	-- print("Camera changed!")
+    for _, Plr in next, Drawings do
+	    Drawings.Update(Drawings[Plr])
+    end
 end)
 
 Camera:GetPropertyChangedSignal("CFrame"):Connect(function()
