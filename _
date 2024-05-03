@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.32,
+    VERSION = 1.33,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -155,6 +155,9 @@ end
 
 function Drawings:Update()
     if not self.PrimaryPart then
+        return self:Remove()
+    end
+    if not IsAlive(self.Player) then
         return self:Remove()
     end
     
@@ -299,7 +302,7 @@ function ESP:Add(Obj, Options)
 end
 
 PlayerSignal:Connect(function(Plr)
-    Drawings.Update(Drawings[Plr])
+    Drawings.Update(Plr)
 end)
 
 CameraSignal:Connect(function()
@@ -321,7 +324,7 @@ for _, Plr in next, Players:GetPlayers() do
             Size = ESP.Settings.Values.BoxSize,
             Object = Character,
             Player = Plr,
-            PrimaryPart = Character.HumanoidRootPart,
+            PrimaryPart = Character.PrimaryPart,
             Enabled = true,
         })
     end
@@ -335,7 +338,7 @@ Players.PlayerAdded:Connect(function(Plr)
             Size = ESP.Settings.Values.BoxSize,
             Object = Character,
             Player = Plr,
-            PrimaryPart = Character.HumanoidRootPart,
+            PrimaryPart = Character.PrimaryPart,
             Enabled = true,
         })
     end)
