@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.13,
+    VERSION = 1.14,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -134,7 +134,7 @@ function Drawings:Update()
     local color = (ESP.Settings.Checks.UseTeamColors and ESP:GetTeamColor(self.Player)) or (self.Color) or (ESP.Settings.Value.Color)
     print("Color is", color)
     local Check = true;
-    if (self.Player and not ESP.Checks.TeamCheck and ESP:IsTeamMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
+    if (self.Player and not ESP.Checks.TeamCheck and ESP:IsMate(self.Player)) or not (self.Enabled) or not workspace:IsAncestorOf(self.PrimaryPart) then
         Check = false;
     end
     print("Check value is", Check)
