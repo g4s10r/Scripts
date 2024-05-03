@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.33,
+    VERSION = 1.34,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -284,7 +284,7 @@ function ESP:Add(Obj, Options)
         end
     end)
 
-    local Primary = NewBox.PrimaryPart;
+    local Primary = Obj:FindFirstChild("HumanoidRootPart");
     print(Primary:GetFullName())
     Primary:GetPropertyChangedSignal("Position"):Connect(function()
         print("selam cano")
@@ -324,7 +324,7 @@ for _, Plr in next, Players:GetPlayers() do
             Size = ESP.Settings.Values.BoxSize,
             Object = Character,
             Player = Plr,
-            PrimaryPart = Character.PrimaryPart,
+            PrimaryPart = Character.HumanoidRootPart,
             Enabled = true,
         })
     end
@@ -338,7 +338,7 @@ Players.PlayerAdded:Connect(function(Plr)
             Size = ESP.Settings.Values.BoxSize,
             Object = Character,
             Player = Plr,
-            PrimaryPart = Character.PrimaryPart,
+            PrimaryPart = Character.HumanoidRootPart,
             Enabled = true,
         })
     end)
