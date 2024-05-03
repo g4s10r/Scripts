@@ -63,12 +63,13 @@ function ESP:GetDistance(Position: Vector3, isMetric: bool) -- Distance from cam
 end
 
 function ESP:GetTeamColor(Player: player)
-    print'hi'
     local Team = game:GetService("Teams"):FindFirstChild(tostring(Player.Team));
     print(Team)
     if Team ~= nil and Team.TeamColor and Team.TeamColor.Color then
+        print("true", Team, Team.TeamColor, Team.TeamColor.Color)
         return Team.TeamColor.Color;
     else
+        print("false")
         return Color3.new(1, 1, 1);
     end
 end
