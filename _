@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = "Test 1.01",
+    VERSION = "Test 1.02",
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -64,7 +64,7 @@ end
 
 function ESP:GetTeamColor(Player: player)
     local Team = game:GetService("Teams"):FindFirstChild(tostring(Player.Team));
-    if Team ~= nil and Team.TeamColor and Team.TeamColor.Color then
+    if Team ~= nil then
         return Team.TeamColor.Color
     else
         return Color3.new(1, 1, 1)
