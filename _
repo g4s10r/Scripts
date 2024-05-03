@@ -35,7 +35,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.20,
+    VERSION = 1.21,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -63,7 +63,9 @@ function ESP:GetDistance(Position: Vector3, isMetric: bool) -- Distance from cam
 end
 
 function ESP:GetTeamColor(Player: player)
+    print'hi'
     local Team = game:GetService("Teams"):FindFirstChild(tostring(Player.Team));
+    print(Team)
     if Team ~= nil and Team.TeamColor and Team.TeamColor.Color then
         return Team.TeamColor.Color;
     else
@@ -283,7 +285,7 @@ PlayerSignal:Connect(function(Character)
 end)
 
 CameraSignal:Connect(function()
-	print("Camera changed!")
+	-- print("Camera changed!")
 end)
 
 Camera:GetPropertyChangedSignal("CFrame"):Connect(function()
@@ -293,6 +295,5 @@ end)
 RunService:BindToRenderStep("CurCamUpdate", 5, function()
     Camera = workspace.CurrentCamera;
 end)
-
 
 return ESP;
