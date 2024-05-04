@@ -6,7 +6,6 @@ local Services = setmetatable({}, {
         return self[tostring(Service)];
     end
 })
-local Signal     = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/main/Signal"))();
 local RunService = Services.RunService;
 local Players    = Services.Players;
 local Workspace  = Services.Workspace;
@@ -35,7 +34,7 @@ local ESP = {
             Exceptions = {},
         },
     },
-    VERSION = 1.37,
+    VERSION = 1.40,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -92,7 +91,7 @@ function ESP:GetBox(Obj)
 end
 
 function ESP:Toggle(bool)
-    self.Enabled = bool
+    self.Settings.Enabled = bool
     if not bool then
         for i,v in pairs(self.Objects) do
             if v.Type == "Box" then
@@ -141,8 +140,6 @@ end
 
 local Drawings     = {};
 Drawings.__index   = Drawings;
-local CameraSignal = Signal.new();
-local PlayerSignal = Signal.new();
 
 function Drawings:Remove()
     ESP.Objects[self.Object] = nil
@@ -154,16 +151,12 @@ function Drawings:Remove()
 end
 
 function Drawings:Update()
-    table.foreach(self, print)
     if not (self.PrimaryPart) then
         return self:Remove()
     end
-    if not IsAlive(self.Player) then
-        return self:Remove()
-    end
     
-    local Color = (ToRGB(ESP:GetTeamColor(self.Player)) and ESP.Settings.Checks.UseTeamColors) or (self.Color) or (ESP.Settings.Value.Color)
-    
+    local Color = (ESP.Settings.Checks.UseTeamColors and ToRGB(ESP:GetTeamColor(self.Player))) or (self.Color) or (ESP.Settings.Value.Color)
+
     local Check = false;
     if (self.Player) and ((not ESP.Settings.Checks.TeamCheck) or ESP.Settings.Checks.TeamCheck and ESP:IsMate(self.Player)) and (self.Enabled) and workspace:IsAncestorOf(self.PrimaryPart) then
         Check = true;
@@ -245,7 +238,7 @@ function ESP:Add(Obj, Options)
         Size = Options.Size or self.Settings.Values.BoxSize,
         Object = Obj,
         Player = Options.Player or ESP:GetPlayerFromCharacter(Obj),
-        PrimaryPart = Options.PrimaryPart or Obj.ClassName == "Model" and (Obj.PrimaryPart or Obj:FindFirstChild("HumanoidRootPart") or Obj:FindFirstChildWhichIsA("BasePart")) or Obj:IsA("BasePart") and Obj,
+        PrimaryPart = Options.PrimaryPart or (Obj.PrimaryPart or Obj:FindFirstChild("HumanoidRootPart") or Obj:FindFirstChildWhichIsA("BasePart")),
         Components = {},
         Enabled = Options.Enabled,
     }, Drawings)
@@ -281,70 +274,70 @@ function ESP:Add(Obj, Options)
 
     Obj.AncestryChanged:Connect(function(_, Parent)
         if Parent == nil then
-            PlayerSignal:Fire(NewBox.Player)
+            NewBox:Remove();
         end
-    end)
-
-    NewBox.PrimaryPart:GetPropertyChangedSignal("Position"):Connect(function()
-        print("Primarypart position changed")
-        PlayerSignal:Fire(NewBox.Player);
     end)
 
     local Humanoid = Obj:FindFirstChildOfClass("Humanoid")
 	if Humanoid then
         Humanoid.Died:Connect(function()
-            PlayerSignal:Fire(NewBox.Player)
+            NewBox:Remove();
 		end)
     end
 
     return NewBox
 end
 
-PlayerSignal:Connect(function(Plr)
-    Drawings.Update(ESP.Objects[Plr.Character])
-end)
-
-CameraSignal:Connect(function()
-    for _, Plr in next, ESP.Objects do
-	    Drawings.Update(ESP.Objects[Plr.Character])
-    end
-end)
-
-Camera:GetPropertyChangedSignal("CFrame"):Connect(function()
-    CameraSignal:Fire();
-end)
-
-for _, Plr in next, Players:GetPlayers() do
-    if Plr ~= Client and IsAlive(Plr) then
-        local Character = Plr.Character or Plr.CharacterAdded:Wait();
-        ESP:Add(Character, {
-            Name = Character.Name,
-            Color = ESP.Settings.Values.Color,
-            Size = ESP.Settings.Values.BoxSize,
-            Object = Character,
+local function CharAdded(Char)
+    local Plr = ESP:GetPlayerFromCharacter(Char)
+    if not Char:FindFirstChild("HumanoidRootPart") then
+        local Child
+        Child = Char.ChildAdded:Connect(function(Ch)
+            if Ch.Name == "HumanoidRootPart" then
+                Child:Disconnect()
+                ESP:Add(Char, {
+                    Name = Plr.Name,
+                    Player = Plr,
+                    PrimaryPart = Ch,
+                    Enabled = true
+                })
+            end
+        end)
+    else
+        ESP:Add(Char, {
+            Name = Plr.Name,
             Player = Plr,
-            PrimaryPart = Character.ClassName == "Model" and (Character.PrimaryPart or Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChildWhichIsA("BasePart")) or Character:IsA("BasePart") and Character,
-            Enabled = true,
+            PrimaryPart = Char.HumanoidRootPart,
+            Enabled = true
         })
     end
 end
 
-Players.PlayerAdded:Connect(function(Plr)
-    Plr.CharacterAdded:Connect(function(Character)
-        ESP:Add(Character, {
-            Name = Character.Name,
-            Color = ESP.Settings.Values.Color,
-            Size = ESP.Settings.Values.BoxSize,
-            Object = Character,
-            Player = Plr,
-            PrimaryPart = Character.ClassName == "Model" and (Character.PrimaryPart or Character:FindFirstChild("HumanoidRootPart") or Character:FindFirstChildWhichIsA("BasePart")) or Character:IsA("BasePart") and Character,
-            Enabled = true,
-        })
-    end)
-end)
+local function PlayerAdded(Plr)
+    Plr.CharacterAdded:Connect(CharAdded)
+    if Plr.Character then
+        coroutine.wrap(CharAdded)(Plr.Character)
+    end
+end
 
-RunService:BindToRenderStep("CurCamUpdate", 5, function()
-    Camera = workspace.CurrentCamera;
+Players.PlayerAdded:Connect(PlayerAdded)
+
+for _, Plr in pairs(Players:GetPlayers()) do
+    if Plr ~= Client then
+        PlayerAdded(Plr)
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    Camera = workspace.CurrentCamera
+    for _, Obj in (ESP.Settings.Enabled and pairs)(ESP.Objects) do
+        if Obj.Update then
+            local Success, Err = pcall(Obj.Update, Obj)
+            if not (Success) then
+                print(string.format("Render not successful, error: %s", Err))
+            end
+        end
+    end
 end)
 
 return ESP;
