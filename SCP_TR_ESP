@@ -46,7 +46,7 @@ local ESP = {
             ["İdari Departman"] = "İD"
         },
     },
-    VERSION = 1.01,
+    VERSION = 1.02,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -96,7 +96,7 @@ function ESP:GetBox(Obj)
 end
 
 function ESP:GetTeamAbbreviation(Player: player)
-    return self.Settings.Teams[Player.Team.]
+    return self.Settings.Teams[Player.Team.Name]
 end
 
 function ESP:Toggle(bool)
