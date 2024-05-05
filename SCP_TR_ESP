@@ -32,7 +32,7 @@ local ESP = {
             TeamExceptions = {},
             PlayerExceptions = {},
         },
-        Teams    = {
+        Teams = {
             ["Anomali Aktörlüğü"] = "AK",
             ["Bilimsel Departman"] = "BD",
             ["Dış Saldırganlar"] = "DS",
@@ -46,7 +46,7 @@ local ESP = {
             ["İdari Departman"] = "İD"
         },
     },
-    VERSION = 1.03,
+    VERSION = 1.04,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -208,17 +208,25 @@ function Drawings:Update()
             self.Components.Name.Position = Vector2.new(TagPos.X, TagPos.Y)
             self.Components.Name.Text = string.format("[ %s ] %s", ESP:GetTeamAbbreviation(self.Player), self.Name)
             self.Components.Name.Color = Color
-            
+        else
+            self.Components.Name.Visible = false
+        end
+    else
+        self.Components.Name.Visible = false
+    end
+
+    if ESP.Settings.Values.Distances then
+        local TagPos, Vis6 = worldToView(Camera, Locations.TagPos.p)
+        
+        if Vis6 then
             self.Components.Distance.Visible = true
             self.Components.Distance.Position = Vector2.new(TagPos.X, TagPos.Y + 14)
             self.Components.Distance.Text = string.format("[ %s meters ]", tostring(ESP:GetDistance(CF.p)))
             self.Components.Distance.Color = Color
         else
-            self.Components.Name.Visible = false
             self.Components.Distance.Visible = false
         end
     else
-        self.Components.Name.Visible = false
         self.Components.Distance.Visible = false
     end
 end
