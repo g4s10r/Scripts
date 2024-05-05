@@ -46,7 +46,7 @@ local ESP = {
             ["İdari Departman"] = "İD"
         },
     },
-    VERSION = 1.02,
+    VERSION = 1.03,
     Objects = setmetatable({}, {__mode="kv"})
 };
 ESP.__index = ESP;
@@ -327,7 +327,7 @@ end
 
 RunService.RenderStepped:Connect(function()
     Camera = workspace.CurrentCamera
-    for _, Obj in (ESP.Settings.Enabled and pairs)(ESP.Objects) do
+    for _, Obj in (ESP.Settings.Enabled and pairs or ipairs)(ESP.Objects) do
         if Obj.Update then
             local Success, Err = pcall(Obj.Update, Obj)
             if not (Success) then
