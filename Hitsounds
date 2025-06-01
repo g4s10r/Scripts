@@ -1,0 +1,12 @@
+local Encoded = {
+    ["Bell.wav"] = "c3Nzc1xCZWxsLndhdg==";
+    ["Cod.wav"] = "c3Nzc1xDb2Qud2F2";
+    ["Fatality.wav"] = "c3Nzc1xGYXRhbGl0eS53YXY=";
+    ["Neverlose.wav"] = "c3Nzc1xOZXZlcmxvc2Uud2F2";
+    ["Primordial.wav"] = "c3Nzc1xQcmltb3JkaWFsLndhdg==";
+    ["Qbeep.wav"] = "c3Nzc1xRYmVlcC53YXY=";
+    ["Rust.wav"] = "c3Nzc1xSdXN0Lndhdg==";
+    ["Skeet.wav"] = "c3Nzc1xTa2VldC53YXY=";
+    ["Star.wav"] = "c3Nzc1xTdGFyLndhdg==";
+}
+return Encoded;
