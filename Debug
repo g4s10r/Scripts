@@ -1,0 +1,364 @@
+--[=[
+        ██            ░██                              
+       ░██            ░██                              
+ ░████████  ░███████  ░████████  ░██    ░██  ░████████ 
+░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██ 
+░██    ░██ ░█████████ ░██    ░██ ░██    ░██ ░██    ░██ 
+░██   ░███ ░██        ░███   ░██ ░██   ░███ ░██   ░███ 
+ ░█████░██  ░███████  ░██░█████   ░█████░██  ░█████░██ 
+                                                   ░██ 
+                                              ░███████  
+        A simple tool to monitor everything
+]=]
+
+--== [services] ==--
+
+local RunService = cloneref(game:GetService("RunService"));
+local TweenService = cloneref(game:GetService("TweenService"));
+
+--== [start] ==--
+
+local Gui = Instance.new("ScreenGui");
+Gui.Parent = gethui();
+
+function RandomString()
+    local Chars = {};
+    
+    for _ = 1, 12 do
+        table.insert(Chars, string.char(math.random(33,126)));
+    end
+
+    return table.concat(Chars);
+end
+
+Gui.Name = RandomString();
+
+local Library = {
+    Title = "Debug Panel",
+    Accent = Color3.fromRGB(255, 190, 0),
+    Colors = {
+        Primary = Color3.fromRGB(32, 32, 32),
+        Secondary = Color3.fromRGB(44, 44, 44),
+    },
+    State = 1
+};
+
+local Fonts = {
+    ["Regular"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+    ["SemiBold"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.SemiBold, Enum.FontStyle.Normal);
+    ["Bold"] = Font.new([[rbxasset://fonts/families/SourceSansPro.json]], Enum.FontWeight.Bold, Enum.FontStyle.Normal);
+}
+
+local Field = {}
+
+function Field.new(Instance, Property, Value, Accent)
+    return setmetatable({["Instance"] = Instance, ["Property"] = Property, ["Value"] = Value, ["Accent"] = Accent}, {
+        __index = Field
+    });
+end
+
+function Field:Update(Table)
+    local Inst = self.Instance;
+
+    if (Table.Value) then
+       Inst.Value.Text = Table.Value;
+    end
+
+    if (Table.Property) then
+        local Text = string.format("%s:", tostring(Table.Property):upper():sub(1, 4));
+        Inst.Property.Text = Text;
+        Inst.Property.Shadow.Text = Text;
+    end
+
+    if (Table.Accent) then
+        local Color = Table.Accent;
+        Inst.Property.TextColor3 = Color;
+        Inst.ColorFrame.Stroke.Color = Color;
+    end
+end
+
+function Field:Remove()
+    self.Instance:Remove();
+end
+
+function Library:Create(Class, Properties, Parent)
+    New = Instance.new(Class, Parent);
+
+    for Property, Value in next, Properties do
+        New[Property] = Value;
+    end
+
+    return New;
+end
+
+function Library:Init(Title, Accent)
+    Library.Title = Title or Library.Title;
+    Library.Accent = Accent or Library.Accent;
+
+    local Body = Library:Create("Frame", {
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = Color3.fromRGB(50, 50, 50);
+        ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+        ["Size"] = UDim2.new(0, 250, 0, 385);
+        ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Name"] = [[Main]];
+        ["BackgroundTransparency"] = 0.5;
+    }, Gui)
+
+    Library:Create("ImageLabel", {
+        ["ZIndex"] = 0;
+        ["SliceCenter"] = Rect.new(85, 85, 427, 427);
+        ["ScaleType"] = Enum.ScaleType.Slice;
+        ["ImageTransparency"] = 0.5;
+        ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+        ["Image"] = [[rbxassetid://12817467194]];
+        ["Size"] = UDim2.new(1, 152, 1, 152);
+        ["BackgroundTransparency"] = 1;
+        ["Name"] = [[MainShadow]];
+        ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+    }, Body);
+
+    Library:Create("UIDragDetector", {
+        ["BoundingBehavior"] = Enum.UIDragDetectorBoundingBehavior.EntireObject;
+        ["BoundingUI"] = Gui;
+        ["Name"] = [[DragDetector]];
+        ["DragRelativity"] = Enum.UIDragDetectorDragRelativity.Relative;
+    }, Body);
+
+    local Topbar = Library:Create("Frame", {
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["AnchorPoint"] = Vector2.new(0.5, 0);
+        ["Size"] = UDim2.new(0, 250, 0, 35);
+        ["Position"] = UDim2.new(0.5, 0, 0, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Name"] = [[Topbar]];
+    }, Body)
+
+    Library:Create("UIGradient", {
+        ["Rotation"] = 90;
+        ["Name"] = [[Gradient]];
+        ["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0.000, Color3.fromRGB(50, 50, 50)),ColorSequenceKeypoint.new(0.250, Color3.fromRGB(32, 32, 32)),ColorSequenceKeypoint.new(0.950, Color3.fromRGB(40, 40, 40)),ColorSequenceKeypoint.new(1.000, Library.Accent)};
+    }, Topbar)
+
+    local TopMain = Library:Create("Frame", {
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+        ["Size"] = UDim2.new(1, 0, 1, 0);
+        ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Name"] = [[Main]];
+        ["BackgroundTransparency"] = 1;
+    }, Topbar)
+
+    Library:Create("UIPadding", {
+        ["PaddingRight"] = UDim.new(0, 8);
+        ["Name"] = [[Padding]];
+        ["PaddingLeft"] = UDim.new(0, 8);
+    }, TopMain)
+
+    local Minimize = Library:Create("TextButton", {
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 14;
+        ["TextColor3"] = Color3.fromRGB(0, 0, 0);
+        ["BackgroundColor3"] = Library.Accent;
+        ["FontFace"] = Fonts.Regular;
+        ["ZIndex"] = 2;
+        ["AnchorPoint"] = Vector2.new(1, 0.5);
+        ["Size"] = UDim2.new(0, 8, 0, 8);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = [[]];
+        ["Name"] = [[Minimize]];
+        ["Position"] = UDim2.new(1, 0, 0.5, 0);
+    }, TopMain)
+
+    Minimize.Activated:Connect(function()
+        if (Library.State == 1) then
+            Library.State = 0;
+            TweenService:Create(Body, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+                Size = UDim2.fromOffset(250, 35);
+            }):Play();
+        else
+            Library.State = 1;
+            TweenService:Create(Body, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+                Size = UDim2.fromOffset(250, 385);
+            }):Play();
+        end
+    end)
+
+    local Title = Library:Create("TextLabel", {
+        ["TextWrapped"] = true;
+        ["ZIndex"] = 2;
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 20;
+        ["TextXAlignment"] = Enum.TextXAlignment.Left;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["FontFace"] = Fonts.Bold;
+        ["TextColor3"] = Color3.fromRGB(255, 255, 255);
+        ["BackgroundTransparency"] = 1;
+        ["RichText"] = true;
+        ["AnchorPoint"] = Vector2.new(0, 0.5);
+        ["Size"] = UDim2.new(0.9, 0, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = Library.Title;
+        ["Name"] = [[Title]];
+        ["Position"] = UDim2.new(0, 0, 0.5, 0);
+    }, TopMain)
+
+    Library:Create("UICorner", {
+        ["Name"] = [[Corner]];
+        ["CornerRadius"] = UDim.new(1, 0);
+    }, Minimize)
+
+    Library:Create("TextLabel", {
+        ["TextWrapped"] = true;
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 20;
+        ["TextXAlignment"] = Enum.TextXAlignment.Left;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["FontFace"] = Fonts.Bold;
+        ["TextColor3"] = Color3.fromRGB(0, 0, 0);
+        ["BackgroundTransparency"] = 1;
+        ["RichText"] = true;
+        ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+        ["Size"] = UDim2.new(1, 0, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = Library.Title;
+        ["Name"] = [[Shadow]];
+        ["Position"] = UDim2.new(0.5, 1, 0.5, 1);
+    }, Title)
+
+    local Panel = Library:Create("ScrollingFrame", {
+        ["Active"] = true;
+        ["ScrollingDirection"] = Enum.ScrollingDirection.Y;
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["Name"] = [[Panel]];
+        ["AnchorPoint"] = Vector2.new(0.5, 1);
+        ["AutomaticCanvasSize"] = Enum.AutomaticSize.Y;
+        ["Size"] = UDim2.new(1, 0, 1, -35);
+        ["ScrollBarImageColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Position"] = UDim2.new(0.5, 0, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["ScrollBarThickness"] = 0;
+        ["BackgroundTransparency"] = 1;
+    }, Body)
+
+    Library:Create("UIListLayout", {
+        ["SortOrder"] = Enum.SortOrder.LayoutOrder;
+        ["HorizontalAlignment"] = Enum.HorizontalAlignment.Center;
+        ["Name"] = [[ListLayout]];
+    }, Panel)
+
+    Library.Panel = Panel;
+end
+
+function Library:AddField(Property, Value, Color)
+    local Text = string.format("%s:", tostring(Property):upper():sub(1, 4));
+    local Color = Color or Color3.fromRGB(255, 190, 0);
+    local Count = #(Library.Panel:GetChildren());
+
+    local Item = Library:Create("Frame", {
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = (Count % 2 == 1 and Color3.fromRGB(32, 32, 32)) or (Count % 2 == 0 and Color3.fromRGB(44, 44, 44));
+        ["AnchorPoint"] = Vector2.new(0.5, 0);
+        ["Size"] = UDim2.new(1, 0, 0, 30);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Name"] = RandomString();
+        ["BackgroundTransparency"] = 0.1;
+    }, Library.Panel)
+
+    local Property1 = Library:Create("TextLabel", {
+        ["TextWrapped"] = true;
+        ["ZIndex"] = 2;
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 15;
+        ["TextXAlignment"] = Enum.TextXAlignment.Right;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["FontFace"] = Fonts.Bold;
+        ["TextColor3"] = Color;
+        ["BackgroundTransparency"] = 1;
+        ["RichText"] = true;
+        ["Size"] = UDim2.new(0, 40, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = Text;
+        ["Name"] = [[Property]];
+    }, Item)
+
+    Library:Create("TextLabel", {
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 15;
+        ["TextXAlignment"] = Enum.TextXAlignment.Right;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["FontFace"] = Fonts.Bold;
+        ["TextColor3"] = Color3.fromRGB(0, 0, 0);
+        ["BackgroundTransparency"] = 1;
+        ["RichText"] = true;
+        ["Size"] = UDim2.new(1, 0, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = Text;
+        ["Name"] = [[Shadow]];
+        ["Position"] = UDim2.new(0, 1, 0, 1);
+    }, Property1);
+
+    local Value1 = Library:Create("TextLabel", {
+        ["BorderSizePixel"] = 0;
+        ["TextSize"] = 14;
+        ["TextXAlignment"] = Enum.TextXAlignment.Left;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+        ["FontFace"] = Fonts.SemiBold;
+        ["TextColor3"] = Color3.fromRGB(255, 255, 255);
+        ["BackgroundTransparency"] = 1;
+        ["AnchorPoint"] = Vector2.new(1, 0);
+        ["Size"] = UDim2.new(0, 200, 1, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Text"] = tostring(Value);
+        ["Name"] = [[Value]];
+        ["Position"] = UDim2.new(1.026, 0, 0, 0);
+    }, Item);
+
+    Library:Create("UIPadding", {
+        ["Name"] = [[Padding]];
+        ["PaddingLeft"] = UDim.new(0, 6);
+    }, Value1);
+
+    Library:Create("UIListLayout", {
+        ["VerticalAlignment"] = Enum.VerticalAlignment.Center;
+        ["Name"] = [[ListLayout]];
+        ["FillDirection"] = Enum.FillDirection.Horizontal;
+    }, Item);
+
+    local ColorFrame = Library:Create("Frame", {
+        ["BorderSizePixel"] = 0;
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 0);
+        ["AnchorPoint"] = Vector2.new(0, 0.5);
+        ["Size"] = UDim2.new(0, 14, 1, -2);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["Name"] = [[ColorFrame]];
+        ["BackgroundTransparency"] = 1;
+    }, Item);
+
+    Library:Create("UIStroke", {
+        ["LineJoinMode"] = Enum.LineJoinMode.Miter;
+        ["Thickness"] = 0.6;
+        ["Color"] = Color;
+        ["Name"] = "Stroke";
+    }, ColorFrame);
+
+    Library:Create("UIPadding", {
+        ["Name"] = [[Padding]];
+        ["PaddingLeft"] = UDim.new(0, 2);
+    }, Item);
+
+    Library:Create("UIPadding", {
+        ["Name"] = [[Padding]];
+        ["PaddingLeft"] = UDim.new(0, 2);
+    }, Item);
+
+    return Field.new(Item, Property, Value, Color);
+end
+
+getgenv().Debug = Library;
+return Library;
