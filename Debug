@@ -23,7 +23,7 @@
 
     ===== [ Accessing from other scripts
 
-    shared.Debug:AddField("Ping", "53ms") -- Fields are string.subbed to first 3 characters
+    shared.Debug:AddField("Ping", "53ms") -- Fields are string.subbed to first 4 characters
 
     ===== [ API summary
 
