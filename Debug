@@ -9,7 +9,68 @@
                                                    ░██ 
                                               ░███████  
         A simple tool to monitor everything
+
+                    Usage:
+
+    ===== [ Example
+
+    local Debug = loadstring(game:HttpGet("https://raw.githubusercontent.com/g4s10r/Scripts/refs/heads/main/Debug"))();
+    Debug:Init("My Panel", Color3.fromRGB(255, 200, 0))
+
+    local myField = Debug:AddField("Label", "InitialValue")
+    myField:Update({ Value = "Updated!" })
+    myField:Remove()
+
+    ===== [ Accessing from other scripts
+
+    shared.Debug:AddField("Ping", "53ms") -- Fields are string.subbed to first 3 characters
+
+    ===== [ API summary
+
+    Debug:Init(
+        title: string? [, 
+        accentColor: Color3?]
+    ) → ()
+
+    Debug:AddField(
+        property: string,
+        value: any,
+        accentColor: Color3?
+    ) → Field
+
+    Field:Update(
+        changes: {
+            Property?: string,
+            Value?: any,
+            Accent?: Color3
+        }
+    ) → ()
+
+    Field:Remove() → ()
+
+    shared.Debug → Debug
 ]=]
+
+
+--== [functions] ==--
+
+cloneref = cloneref or function(...)
+    return ...;
+end
+
+gethui = gethui or function()
+    return cloneref(game:GetService("CoreGui"));
+end
+
+function RandomString()
+	local Chars = table.create(8);
+
+	for Index, _ in ipairs(Chars) do
+		Chars[Index] = string.char(math.random(33, 126));
+	end
+
+	return table.concat(Chars);
+end
 
 --== [services] ==--
 
@@ -20,18 +81,7 @@ local TweenService = cloneref(game:GetService("TweenService"));
 
 local Gui = Instance.new("ScreenGui");
 Gui.Parent = gethui();
-
-function RandomString()
-    local Chars = {};
-    
-    for _ = 1, 12 do
-        table.insert(Chars, string.char(math.random(33,126)));
-    end
-
-    return table.concat(Chars);
-end
-
-Gui.Name = RandomString();
+Gui.Name = RandomString(); -- This doesn't effect anything at all lolol
 
 local Library = {
     Title = "Debug Panel",
@@ -52,7 +102,12 @@ local Fonts = {
 local Field = {}
 
 function Field.new(Instance, Property, Value, Accent)
-    return setmetatable({["Instance"] = Instance, ["Property"] = Property, ["Value"] = Value, ["Accent"] = Accent}, {
+    return setmetatable({
+        ["Instance"] = Instance,
+        ["Property"] = Property,
+        ["Value"] = Value,
+        ["Accent"] = Accent},
+     {
         __index = Field
     });
 end
@@ -360,5 +415,5 @@ function Library:AddField(Property, Value, Color)
     return Field.new(Item, Property, Value, Color);
 end
 
-getgenv().Debug = Library;
+shared.Debug = Library;
 return Library;
