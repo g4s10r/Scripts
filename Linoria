@@ -44,6 +44,7 @@ local Library = {
 
     Signals = {};
     ScreenGui = ScreenGui;
+    Toggled = false;
 };
 
 local RainbowStep = 0
@@ -3504,7 +3505,6 @@ function Library:CreateWindow(...)
     });
 
     local TransparencyCache = {};
-    local Toggled = false;
     local Fading = false;
 
     function Library:Toggle()
@@ -3514,10 +3514,10 @@ function Library:CreateWindow(...)
 
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
-        Toggled = (not Toggled);
-        ModalElement.Modal = Toggled;
+        Library.Toggled = (not Library.Toggled);
+        ModalElement.Modal = Library.Toggled;
 
-        if Toggled then
+        if Library.Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
 
@@ -3536,7 +3536,7 @@ function Library:CreateWindow(...)
                 CursorOutline.Color = Color3.new(0, 0, 0);
                 CursorOutline.Visible = true;
 
-                while Toggled and ScreenGui.Parent do
+                while Library.Toggled and ScreenGui.Parent do
                     InputService.MouseIconEnabled = false;
 
                     local mPos = InputService:GetMouseLocation();
@@ -3591,13 +3591,13 @@ function Library:CreateWindow(...)
                     continue;
                 end;
 
-                TweenService:Create(Desc, TweenInfo.new(FadeTime, Enum.EasingStyle.Linear), { [Prop] = Toggled and Cache[Prop] or 1 }):Play();
+                TweenService:Create(Desc, TweenInfo.new(FadeTime, Enum.EasingStyle.Linear), { [Prop] = Library.Toggled and Cache[Prop] or 1 }):Play();
             end;
         end;
 
         task.wait(FadeTime);
 
-        Outer.Visible = Toggled;
+        Outer.Visible = Library.Toggled;
 
         Fading = false;
     end
