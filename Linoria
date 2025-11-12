@@ -404,9 +404,11 @@ function Library:OnUnload(Callback)
 end
 
 Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
-    if Library.RegistryMap[Instance] and not Instance:GetAttribute("IgnoreRegistry") then
-        Library:RemoveFromRegistry(Instance);
-    end;
+    task.defer(function()
+        if Library.RegistryMap[Instance] and not Instance:IsDescendantOf(CoreGui) then
+            Library:RemoveFromRegistry(Instance);
+        end;
+    end)
 end))
 
 local BaseAddons = {};
