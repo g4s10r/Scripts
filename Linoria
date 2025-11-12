@@ -1,6 +1,6 @@
--- Linoria | Edit 9.29.2025
+-- Linoria | Edit 12.11.2025
 -- Changelog
---   = Added transparency value to colorpicker callbacks
+--   = Added ignore removing item with attribute
 
 local InputService = cloneref(game:GetService('UserInputService'));
 local TextService = cloneref(game:GetService('TextService'));
@@ -404,7 +404,7 @@ function Library:OnUnload(Callback)
 end
 
 Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
-    if Library.RegistryMap[Instance] then
+    if Library.RegistryMap[Instance] and not Instance:GetAttribute("IgnoreRegistry") then
         Library:RemoveFromRegistry(Instance);
     end;
 end))
