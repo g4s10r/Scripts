@@ -1,6 +1,6 @@
--- Linoria | Edit 12.11.2025
+-- Linoria | Edit 13.11.2025
 -- Changelog
---   = Added ignore removing item with attribute
+--   = Added rich text support for labels
 
 local InputService = cloneref(game:GetService('UserInputService'));
 local TextService = cloneref(game:GetService('TextService'));
@@ -155,6 +155,7 @@ function Library:CreateLabel(Properties, IsHud)
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
+        RichText = true;
     });
 
     Library:ApplyTextStroke(_Instance);
@@ -1371,6 +1372,7 @@ do
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 5;
             Parent = Container;
+            RichText = true;
         });
 
         if DoesWrap then
