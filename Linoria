@@ -1,6 +1,6 @@
 -- Linoria | Edit 13.11.2025
 -- Changelog
---   = Added rich text support for labels
+--   = Added rich text support for AddLabel
 
 local InputService = cloneref(game:GetService('UserInputService'));
 local TextService = cloneref(game:GetService('TextService'));
@@ -149,13 +149,12 @@ function Library:ApplyTextStroke(Inst)
 end;
 
 function Library:CreateLabel(Properties, IsHud)
-    local _Instance = Library:Create('TextLabel', {
+    local _Instance = Library:Create('TextLabel', { -- Don't add richtext if possible
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
         TextSize = 16;
         TextStrokeTransparency = 0;
-        RichText = true;
     });
 
     Library:ApplyTextStroke(_Instance);
