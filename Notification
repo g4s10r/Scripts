@@ -1,0 +1,169 @@
+local Notification = {};
+
+cloneref = cloneref or function(...)
+    return ...;
+end
+
+gethui = gethui or function(...)
+    return cloneref(game.GetService("CoreGui"));
+end
+
+local CreateInstance = function(Class, Properties)
+    local New = Instance.new(Class);
+    
+    for Index, Value in Properties do 
+        New[Index] = Value;
+    end
+
+    return New;
+end
+
+local GetShade = function(Color)
+	return Color3.new(math.clamp(Color.R * 0.586, 0, 1), math.clamp(Color.G * 0.597, 0, 1), math.clamp(Color.B * 0.578, 0, 1));
+end
+
+local TextService = cloneref(game.GetService(game, "TextService"));
+local TweenService = cloneref(game.GetService(game, "TweenService"));
+local TextBoundParams = Instance.new("GetTextBoundsParams");
+TextBoundParams.Font = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+TextBoundParams.Size = 18;
+
+local Gui = CreateInstance("ScreenGui", {
+    ["Parent"] = gethui();
+    ["Name"] = "Notification";
+});
+
+local Holder = CreateInstance("Frame", {
+    ["Parent"] = Gui;
+    ["Name"] = "Holder";
+    ["BorderSizePixel"] = 0;
+    ["ClipsDescendants"] = true;
+    ["BackgroundTransparency"] = 1;
+    ["Size"] = UDim2.new(0, 750, 1, 0);
+    ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+    ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+    ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+    ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+});
+
+CreateInstance("UIListLayout", {
+    ["Parent"] = Holder;
+    ["Name"] = "ListLayout";
+    ["Padding"] = UDim.new(0, 10);
+    ["SortOrder"] = Enum.SortOrder.LayoutOrder;
+    ["VerticalAlignment"] = Enum.VerticalAlignment.Center;
+    ["HorizontalAlignment"] = Enum.HorizontalAlignment.Center;
+});
+
+CreateInstance("UIPadding", {
+    ["Parent"] = Holder;
+    ["Name"] = "Padding";
+    ["PaddingTop"] = UDim.new(0.4, 0);
+});
+
+function Notification.new(Duration, Text, TextColor, AccentColor)
+    local Text = Text or "Blank";
+    local Duration = Duration or 5;
+    local TextColor = TextColor or Color3.fromRGB(255, 255, 255);
+    local AccentColor = AccentColor or Color3.fromRGB(75, 115, 190);
+    local Primary, Secondary = AccentColor, GetShade(AccentColor);
+
+    TextBoundParams.Text = Text;
+    local Size = TextService.GetTextBoundsAsync(TextService, TextBoundParams);
+    Size = UDim2.new(0, Size.X * 1.2 + 40, 0, 40);
+
+    local Base = CreateInstance("Frame", {
+        ["Parent"] = Holder;
+        ["BorderSizePixel"] = 0;
+        ["Name"] = "Notification";
+        ["BackgroundTransparency"] = 0.2;
+        ["Size"] = UDim2.new(0, 0, 0, 40);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+    });
+
+    CreateInstance("UICorner", {
+        ["Name"] = "Radius";
+        ["Parent"] = Base;
+        ["CornerRadius"] = UDim.new(0, 12);
+    });
+
+    local Label = CreateInstance("TextLabel", {
+        ["ZIndex"] = 2;
+        ["Text"] = Text;
+        ["Parent"] = Base;
+        ["TextSize"] = 18;
+        ["Name"] = "Label";
+        ["TextWrapped"] = false;
+        ["BorderSizePixel"] = 0;
+        ["TextTransparency"] = 1;
+        ["TextColor3"] = TextColor;
+        ["BackgroundTransparency"] = 1;
+        ["Size"] = UDim2.new(1, 0, 1, 0);
+        ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+        ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["FontFace"] = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+    });
+
+    CreateInstance("UIGradient", {
+        ["Rotation"] = 90;
+        ["Name"] = "Gradient";
+        ["Parent"] = Base;
+        ["Transparency"] = NumberSequence.new{NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.2, 0.825), NumberSequenceKeypoint.new(0.8, 0.825), NumberSequenceKeypoint.new(1, 0)};
+        ["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0, Secondary), ColorSequenceKeypoint.new(0.5, Primary), ColorSequenceKeypoint.new(1, Secondary)};
+    });
+
+    local Inner = CreateInstance("Frame", {
+        ["Name"] = "Inner";
+        ["BorderSizePixel"] = 0;
+        ["Parent"] = Base;
+        ["Size"] = UDim2.new(1, 0, 1, 0);
+        ["BackgroundTransparency"] = 0.2;
+        ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+        ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+    });
+
+    CreateInstance("UICorner", {
+        ["Parent"] = Inner;
+        ["Name"] = "Radius";
+        ["CornerRadius"] = UDim.new(0, 12);
+    });
+
+    CreateInstance("UIGradient", {
+        ["Parent"] = Inner;
+        ["Name"] = "Gradient";
+        ["Color"] = ColorSequence.new{ColorSequenceKeypoint.new(0, Secondary), ColorSequenceKeypoint.new(0.5, Primary), ColorSequenceKeypoint.new(1, Secondary)};
+        ["Transparency"] = NumberSequence.new{NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.03, 1), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(0.97, 1), NumberSequenceKeypoint.new(1, 0)};
+    });
+
+    local Tween = TweenService.Create(TweenService, Base, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        ["Size"] = Size;
+    });
+    
+    Tween:Play();
+
+    Tween.Completed:Once(function()
+        local Tween = TweenService.Create(TweenService, Label, TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+            ["TextTransparency"] = 0;
+        }):Play();
+    end);
+
+    task.delay(Duration, function()
+        TweenService.Create(TweenService, Label, TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+            ["TextTransparency"] = 1;
+        }):Play();
+
+        local Tween = TweenService.Create(TweenService, Base, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            ["Size"] = UDim2.new(0, 0, 0, 40);
+        });
+
+        Tween:Play();
+
+        Tween.Completed:Once(function()
+            Base:Destroy();
+        end);
+    end);
+end
+
+return Notification;
