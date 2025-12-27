@@ -73,7 +73,7 @@ function Notification.new(Duration, Text, TextColor, AccentColor)
 
     TextBoundParams.Text = Text;
     local Size = TextService.GetTextBoundsAsync(TextService, TextBoundParams);
-    Size = UDim2.new(0, Size.X * 1.2 + 40, 0, 40);
+    Size = UDim2.new(0, Size.X + 40, 0, 40);
 
     local Base = CreateInstance("Frame", {
         ["Parent"] = Holder;
