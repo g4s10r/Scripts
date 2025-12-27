@@ -1,3 +1,5 @@
+------- [ notification ]
+
 local Notification = {};
 
 cloneref = cloneref or function(...)
@@ -24,6 +26,7 @@ end
 
 local TextService = cloneref(game.GetService(game, "TextService"));
 local TweenService = cloneref(game.GetService(game, "TweenService"));
+
 local TextBoundParams = Instance.new("GetTextBoundsParams");
 TextBoundParams.Font = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
 TextBoundParams.Size = 18;
@@ -137,7 +140,7 @@ function Notification.new(Duration, Text, TextColor, AccentColor)
         ["Transparency"] = NumberSequence.new{NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.03, 1), NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(0.97, 1), NumberSequenceKeypoint.new(1, 0)};
     });
 
-    local Tween = TweenService.Create(TweenService, Base, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    local Tween = TweenService.Create(TweenService, Base, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
         ["Size"] = Size;
     });
     
