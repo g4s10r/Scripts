@@ -1,3 +1,5 @@
+-- Uploaded this to github to try some old script :) It's like 5 year old UI so no hate pls
+
 -- // WARNING: This Repository is Licensed! You are not permitted to use/copy this User Interface library
 local Global = getgenv and getgenv() or _G;
 local LibraryFunctions = {Notifications = {}, Connections = {}, Flags = {}}
@@ -1258,7 +1260,7 @@ function lib:Create(ver, size, hidekey)
 				return label
 			end
 
-			function items:Toggle(side, text, config, callback)
+			function items:Toggle(side, text, callback)
 				text = text or "N/A"
 				callback = callback or function() end
 				local config = config or false 
@@ -2082,9 +2084,9 @@ function lib:Create(ver, size, hidekey)
 				end
 			end
 
-			function items:Slider(side, text, start, min, max, inc, callback)
+			function items:Slider(side, text, min, max, inc, callback)
 				local dragging = false
-				--start = start or min --or 5
+				start = min --or 5
 				local Slider = Instance.new("Frame")
 				Slider.Name = tostring(text)
 				Slider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
