@@ -818,3 +818,4 @@ Signal.new(RunService.PostSimulation:Connect(function()
 end));
 
 getgenv().Konzole = Konzole;
+return Konzole;
