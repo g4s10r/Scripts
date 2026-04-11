@@ -1,0 +1,820 @@
+------- [ konzole ]
+
+local Konzole = {};
+
+local cloneref = cloneref or function(...) 
+    return ...;
+end
+
+local gethui = gethui or function()
+    return cloneref(game.GetService(game, "CoreGui"));
+end
+
+------- [ signal ]
+
+local Signal = {
+	Cache = {};
+};
+
+function Signal.new(Connection)
+	assert(Connection ~= nil, "Signal.new missing argument");
+    assert(typeof(Connection) == "RBXScriptConnection", "Signal.new requires a valid RBXScriptConnection");
+
+	Signal.Cache[Connection] = Connection;
+
+	return setmetatable({
+		Connection = Connection
+	}, {__index = Signal});
+end
+
+function Signal.Shutdown()	
+	for _, Connection in Signal.Cache do
+		Connection:Disconnect();
+	end
+end
+
+function Signal:Disconnect()
+	assert(type(self) == "table", "Signal type mismatch");
+
+	self.Connection:Disconnect();
+	self.Cache[self.Connection] = nil;
+end
+
+------- [ variables ]
+
+local Nunito = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+local InputService = cloneref(game.GetService(game, "UserInputService"));
+local TweenService = cloneref(game.GetService(game, "TweenService"));
+local TextService = cloneref(game.GetService(game, "TextService"));
+local RunService = cloneref(game.GetService(game, "RunService"));
+local GuiService = cloneref(game.GetService(game, "GuiService"));
+local CoreGui = cloneref(game.GetService(game, "CoreGui"));
+
+local MenuState = true;
+local Timestamps = false;
+local TooltipState = false;
+local AutoScrolling = false;
+local FilterTostring = false;
+
+local LabelPool = {}; -- Why do I even bother
+local GuiInset = GuiService.GetGuiInset(GuiService);
+local InsetU2 = UDim2.fromOffset(GuiInset.X, GuiInset.Y);
+
+------- [ animation constants ]
+
+local FADE_TIME = 0.2;
+local FADE_STYLE = Enum.EasingStyle.Linear;
+local FADE_DIRECTION = Enum.EasingDirection.In;
+
+local SHADE_TIME = 0.15;
+local SHADE_RATIO = 0.8;
+local SHADE_STYLE = Enum.EasingStyle.Linear;
+local SHADE_DIRECTION = Enum.EasingDirection.In;
+
+------- [ functions ]
+
+local Element = {};
+
+function Element.new(Object)
+    local ClassName = Object.ClassName;
+    
+    if (ClassName == "Frame" or ClassName == "ScrollingFrame" or ClassName == "TextButton") then
+        Element[Object] = {"BackgroundTransparency", Object.BackgroundTransparency, "BackgroundColor3", Object.BackgroundColor3};
+    elseif (ClassName == "TextLabel") then        
+        Element[Object] = {"TextTransparency", Object.TextTransparency, "TextColor3", Object.TextColor3};
+    elseif (ClassName == "UIStroke") then
+        Element[Object] = {"Transparency", Object.Transparency, "Color", Object.Color};
+    elseif (ClassName == "ImageLabel") then
+        Element[Object] = {"ImageTransparency", Object.ImageTransparency, "ImageColor3", Object.ImageColor3};
+    end
+end
+
+function Element.GetShade(Color)
+    return Color3.new(
+        math.clamp(Color.R * SHADE_RATIO, 0, 1),
+        math.clamp(Color.G * SHADE_RATIO, 0, 1),
+        math.clamp(Color.B * SHADE_RATIO, 0, 1)
+    );
+end
+
+function Element.Fade(Object)
+    MenuState = (not MenuState);
+
+    for _, UIElement in Object:GetDescendants() do
+        local ElementInfo = Element[UIElement];
+
+        if (ElementInfo) then
+            local Property = ElementInfo[1];
+            TweenService.Create(TweenService, UIElement, TweenInfo.new(FADE_TIME, FADE_STYLE, FADE_DIRECTION), {
+                [Property] = (MenuState and ElementInfo[2]) or 1;
+            }):Play();
+        end
+    end
+end
+
+function Element.Hover(Object, State)
+    local ElementInfo = Element[Object];
+    
+    if (not ElementInfo) then
+        return;
+    end
+    
+    TweenService.Create(TweenService, Object, TweenInfo.new(SHADE_TIME, SHADE_STYLE, SHADE_DIRECTION), {
+        [ElementInfo[3]] = (State and Element.GetShade(ElementInfo[4])) or ElementInfo[4];
+    }):Play();
+end
+
+function Element.AddHover(Object, Function)
+    Signal.new(Object.MouseEnter:Connect(function()
+        Element.Hover(Object, true);
+
+        if (Function) then
+            Function(true);
+        end
+    end));
+
+    Signal.new(Object.MouseLeave:Connect(function()
+        Element.Hover(Object, false);
+
+        if (Function) then
+            Function(false);
+        end
+    end));
+end
+
+local function CreateInstance(Class, Parent, Properties)
+    local New = Instance.new(Class);
+
+    for Index, Value in Properties do
+        New[Index] = Value
+    end
+   
+    Element.new(New);
+    New.Parent = Parent;
+
+    return New;
+end
+
+local function GetTimestamp()
+    return os.date("%H:%M:%S");
+end
+
+------- [ main ]
+
+local ScreenGui = CreateInstance("ScreenGui", gethui(), {
+    Name = "Konzole",
+    ZIndexBehavior = Enum.ZIndexBehavior.Global
+});
+
+local LabelsFolder = CreateInstance("Folder", CoreGui, {
+    Name = "KonzoleLabelPool"
+});
+
+local BodyFrame = CreateInstance("Frame", ScreenGui, {
+    Name = "BodyFrame",
+    BorderSizePixel = 0,
+    BackgroundTransparency = 1,
+    BackgroundColor3 = Color3.fromRGB(27, 27, 27),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(0, 500, 0, 500)
+});
+
+local TitleFrame = CreateInstance("Frame", BodyFrame, {
+    Name = "TitleFrame",
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0),
+    Size = UDim2.new(0, 500, 0, 50),
+    Position = UDim2.new(0.5, 0, 0, 0)
+});
+
+CreateInstance("UIStroke", TitleFrame, {
+    ZIndex = 2,
+    Color = Color3.fromRGB(49, 49, 49),
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local TitleOuterOutline = CreateInstance("Frame", TitleFrame, {
+    Name = "TitleOuterOutline",
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+});
+
+CreateInstance("UIStroke", TitleOuterOutline, {
+    Thickness = 2,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local TitleWrapper = CreateInstance("Frame", TitleFrame, {
+    Name = "TitleWrapper",
+    BorderSizePixel = 0,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0)
+});
+
+local TitleLabel = CreateInstance("TextLabel", TitleWrapper, {
+    Name = "TitleLabel",
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    BackgroundTransparency = 1,
+    FontFace = Nunito,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    RichText = true,
+    Size = UDim2.new(0.5, 0, 1, 0),
+    Text = "Skid Konzole"
+});
+
+CreateInstance("UIPadding", TitleWrapper, {
+    PaddingRight = UDim.new(0, 16),
+    PaddingLeft = UDim.new(0, 16)
+});
+
+local TitleButtonContainer = CreateInstance("Frame", TitleWrapper, {
+    Name = "TitleButtonContainer",
+    BorderSizePixel = 0,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0.5, 0, 1, 0)
+});
+
+CreateInstance("UIListLayout", TitleButtonContainer, {
+    HorizontalAlignment = Enum.HorizontalAlignment.Right,
+    VerticalFlex = Enum.UIFlexAlignment.SpaceEvenly,
+    Padding = UDim.new(0, 12),
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    FillDirection = Enum.FillDirection.Horizontal
+});
+
+local AutoScrollButton = CreateInstance("TextButton", TitleButtonContainer, {
+    Name = "AutoScrollButton",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    AutoButtonColor = false,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    FontFace = Nunito,
+    ZIndex = 2,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 25, 0, 50),
+    Text = ""
+});
+
+local AutoScrollLabel = CreateInstance("TextLabel", AutoScrollButton, {
+    Name = "AutoScrollLabel",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    FontFace = Nunito,
+    ZIndex = 2,
+    RichText = true,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "AS"
+});
+
+local TimestampButton = CreateInstance("TextButton", TitleButtonContainer, {
+    Name = "TimestampButton",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    AutoButtonColor = false,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    FontFace = Nunito,
+    ZIndex = 2,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 25, 0, 50),
+    Text = ""
+});
+
+local TimestampLabel = CreateInstance("TextLabel", TimestampButton, {
+    Name = "TimestampLabel",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    FontFace = Nunito,
+    ZIndex = 2,
+    RichText = true,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "TS"
+});
+
+local FilterButton = CreateInstance("TextButton", TitleButtonContainer, {
+    Name = "FilterButton",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    AutoButtonColor = false,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    FontFace = Nunito,
+    ZIndex = 2,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 25, 0, 50),
+    Text = ""
+});
+
+local FilterLabel = CreateInstance("TextLabel", FilterButton, {
+    Name = "FilterLabel",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    FontFace = Nunito,
+    ZIndex = 2,
+    RichText = true,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "FT"
+});
+
+local CloseButton = CreateInstance("TextButton", TitleButtonContainer, {
+    Name = "CloseButton",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    AutoButtonColor = false,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    FontFace = Nunito,
+    ZIndex = 2,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(0, 12, 0, 50),
+    Text = ""
+});
+
+local CloseLabel = CreateInstance("TextLabel", CloseButton, {
+    Name = "CloseLabel",
+    TextWrapped = true,
+    BorderSizePixel = 0,
+    TextSize = 17,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    FontFace = Nunito,
+    ZIndex = 2,
+    RichText = true,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "X"
+});
+
+CreateInstance("UIListLayout", TitleWrapper, {
+    HorizontalFlex = Enum.UIFlexAlignment.SpaceBetween,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    FillDirection = Enum.FillDirection.Horizontal
+});
+
+local ConsoleFrame = CreateInstance("Frame", BodyFrame, {
+    Name = "ConsoleFrame",
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(13, 13, 13),
+    AnchorPoint = Vector2.new(0.5, 0),
+    Size = UDim2.new(0, 500, 0, 450),
+    Position = UDim2.new(0.5, 0, 0, 50)
+});
+
+CreateInstance("UIStroke", ConsoleFrame, {
+    ZIndex = 2,
+    Color = Color3.fromRGB(49, 49, 49),
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local ConsoleDarkOutline = CreateInstance("Frame", ConsoleFrame, {
+    Name = "ConsoleDarkOutline",
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+});
+
+CreateInstance("UIStroke", ConsoleDarkOutline, {
+    Thickness = 2,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local ConsoleWrapper = CreateInstance("Frame", ConsoleFrame, {
+    Name = "ConsoleWrapper",
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+});
+
+local MainSection = CreateInstance("Frame", ConsoleWrapper, {
+    Name = "MainSection",
+    ZIndex = 3,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 0, 385),
+    Position = UDim2.new(0.5, 0, 0.45, 0)
+});
+
+CreateInstance("UIStroke", MainSection, {
+    ZIndex = 2,
+    Color = Color3.fromRGB(49, 49, 49),
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local MainDarkOutline = CreateInstance("Frame", MainSection, {
+    Name = "MainDarkOutline",
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+});
+
+CreateInstance("UIStroke", MainDarkOutline, {
+    Thickness = 2,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local ScrollingFrame = CreateInstance("ScrollingFrame", MainSection, {
+    Name = "ScrollingFrame",
+    Active = true,
+    ZIndex = 2,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.new(1, 1, 1),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    CanvasSize = UDim2.fromScale(0, 1),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    Size = UDim2.new(1, 0, 1, 0),
+    ScrollBarThickness = 0,
+    BackgroundTransparency = 1,
+    Position = UDim2.new(0.5,0,0.5,0)
+});
+
+CreateInstance("UIListLayout", ScrollingFrame, {});
+
+CreateInstance("UIPadding", ScrollingFrame, {
+    PaddingRight = UDim.new(0, 12),
+    PaddingLeft = UDim.new(0, 12),
+    PaddingBottom = UDim.new(0, 4),
+    PaddingTop = UDim.new(0, 4)
+});
+
+CreateInstance("UIPadding", ConsoleWrapper, {
+    PaddingTop = UDim.new(0, 12),
+    PaddingRight = UDim.new(0, 12),
+    PaddingLeft = UDim.new(0, 12),
+    PaddingBottom = UDim.new(0, 12)
+});
+
+if (getcustomasset) then
+    local Pattern = base64decode("iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAQAAABecRxxAAAHC0lEQVR42u3dMU5UYRiG0Q8LEhObybgF2Yja2KhQIJtgC+zBRQAVamLoYAn0whYkNGgxzVgQEowLUHzO6Ybu/nfeJ3eGBDbWA1Q9cQQgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgAIACAAAACAAgACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIAAgAIACAAAACAAgAIACAAPC/WMzBXMzt3M7FHMzCgTRtrJ1B0es5muWD19ezO2eOxRMABTvz9bf5zyzndN47GAGgMP/D2fzjp5tzLAECQHP+EiAApOcvAQJAev4SIACk5y8BAkB6/hIgAKTnf5+AbYcmABTnf5eAIwkQAJrzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzlwABID1/CRAA0vOXAAEgPX8JEADS85cAASA9fwkQANLzv0/AjpssABTnf5eAQwkQAJrzlwABID1/CRAA0vOXAAEgPX8J+IdsrJ3B3/ZyTmPzv7OaN3Pm9gtA22KuZhm99ut5MTfeAj4ClO1n5z+znH1vAAFoe+fq8RGg6+c8DV/9j3nmLeAJABCApG/pq7/yBhCAts+uHt8BdC3mcp5Hr/37bPk1oCeAtpvZnVXyyleza/4CwPnsBROwmr05d/MFgJmTXAJWszcnbrwAUEyA+QsA2QSYvwCQTYD5CwDZBJi/AJBNgPkLANkEmL8AkE2A+QsA2QSYvwCQTYD5CwDZBJi/AJBNgPkLANkEmL8AkE2A+QsA2QSY/yPgLwI9Bttz9Oj+d9BqPswnt84TAMWnAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkwfwEgmwDzFwCyCTB/ASCbAPMXALIJMH8BIJsA8xcAsgkw/6SNtTMoejXHs3zw+np258yxCAAVi9mft7M1M5fzZT7OjSMRAMB3AIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAgAA4AhAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQAEABAAAABAAQABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAQAEAAAAEABAAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEABAAQAAAAQAEAAQAEABAAAABAAQAEABAAAABAAQAeNx+AaBehiwR2H9TAAAAAElFTkSuQmCC");
+    
+    if (not isfile("KonzoleDotPattern.png")) then        
+        writefile("KonzoleDotPattern.png", Pattern);
+    end
+
+    CreateInstance("ImageLabel", ConsoleFrame, {
+        Name = "DotPattern",
+        ZIndex = 2,
+        BorderSizePixel = 0,
+        ScaleType = Enum.ScaleType.Tile,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        ImageColor3 = Color3.fromRGB(30, 30, 30),
+        Image = getcustomasset("KonzoleDotPattern.png"),
+        TileSize = UDim2.new(0, 5, 0, 5),
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1
+    });
+end
+
+local ButtonHolder = CreateInstance("Frame", ConsoleFrame, {
+    Name = "ButtonHolder",
+    ZIndex = 3,
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0),
+    Size = UDim2.new(0, 476, 0, 35),
+    Position = UDim2.new(0.5, 0, 0.9, 0),
+    BackgroundTransparency = 1
+});
+
+local ClearButton = CreateInstance("TextButton", ButtonHolder, {
+    Name = "ClearButton",
+    BorderSizePixel = 0,
+    AutoButtonColor = false,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    Selectable = false,
+    ZIndex = 3,
+    AnchorPoint = Vector2.new(0.5, 0),
+    Size = UDim2.new(0, 115, 0, 35),
+    Text = ""
+});
+
+local ClearLabel = CreateInstance("TextLabel", ClearButton, {
+    Name = "ClearLabel",
+    TextWrapped = false,
+    BorderSizePixel = 0,
+    TextSize = 16,
+    TextColor3 = Color3.fromRGB(204, 204, 204),
+    FontFace = Nunito,
+    ZIndex = 3,
+    RichText = true,
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 0, 1, 0),
+    Text = "Clear"
+});
+
+CreateInstance("UIStroke", ClearButton, {
+    ZIndex = 2,
+    Color = Color3.fromRGB(49, 49, 49),
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+local ClearOuterOutline = CreateInstance("Frame", ClearButton, {
+    Name = "ClearOuterOutline",
+    BorderSizePixel = 0,
+    BackgroundColor3 = Color3.fromRGB(17, 17, 17),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundTransparency = 1
+});
+
+CreateInstance("UIStroke", ClearOuterOutline, {
+    Thickness = 2,
+    ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+});
+
+CreateInstance("UIListLayout", ButtonHolder, {
+    Padding = UDim.new(0, 12),
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    FillDirection = Enum.FillDirection.Horizontal
+});
+
+CreateInstance("UIDragDetector", BodyFrame, {
+    Name = "DragDetector"
+});
+
+local TooltipBody = CreateInstance("Frame", ScreenGui, {
+    ["ZIndex"] = 4;
+    ["BorderSizePixel"] = 0;
+    ["BackgroundColor3"] = Color3.fromRGB(18, 18, 18);
+    ["AnchorPoint"] = Vector2.new(0.5, 0);
+    ["Size"] = UDim2.new(0, 150, 0, 40);
+    ["Position"] = UDim2.new(0.52347, 0, 0.3727, 0);
+    ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+    ["Visible"] = false
+});
+
+CreateInstance("UIStroke", TooltipBody, {
+    ["ZIndex"] = 2;
+    ["Color"] = Color3.fromRGB(49, 49, 49);
+    ["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+});
+
+local TooltipOuterOutline = CreateInstance("Frame", TooltipBody, {
+    ["BorderSizePixel"] = 0;
+    ["BackgroundColor3"] = Color3.fromRGB(18, 18, 18);
+    ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+    ["Size"] = UDim2.new(1, 0, 1, 0);
+    ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+    ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+    ["BackgroundTransparency"] = 1;
+});
+
+CreateInstance("UIStroke", TooltipOuterOutline, {
+    ["Thickness"] = 2;
+    ["ApplyStrokeMode"] = Enum.ApplyStrokeMode.Border;
+});
+
+local TooltipWrapper = CreateInstance("Frame", TooltipBody, {
+    ["BorderSizePixel"] = 0;
+    ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+    ["Size"] = UDim2.new(1, 0, 1, 0);
+    ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+    ["Name"] = [[Wrapper]];
+});
+
+local TooltipLabel = CreateInstance("TextLabel", TooltipWrapper, {
+    ["ZIndex"] = 4;
+    ["BorderSizePixel"] = 0;
+    ["TextSize"] = 14;
+    ["TextXAlignment"] = Enum.TextXAlignment.Left;
+    ["BackgroundColor3"] = Color3.fromRGB(255, 255, 255);
+    ["FontFace"] = Font.new([[rbxasset://fonts/families/Nunito.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+    ["TextColor3"] = Color3.fromRGB(205, 205, 205);
+    ["BackgroundTransparency"] = 1;
+    ["RichText"] = true;
+    ["TextWrapped"] = true;
+    ["AnchorPoint"] = Vector2.new(0.5, 0.5);
+    ["Size"] = UDim2.new(1, -12, 1, -12); -- Minus padding
+    ["BorderColor3"] = Color3.fromRGB(0, 0, 0);
+    ["Text"] = [[Skid Console]];
+    ["Name"] = [[Label]];
+    ["Position"] = UDim2.new(0.5, 0, 0.5, 0);
+});
+
+------- [ konzole functions and connections ]
+
+function Konzole.GetLabel()
+    if (#LabelPool >= 1) then
+        return table.remove(LabelPool, 1);
+    else
+        return CreateInstance("TextLabel", ScrollingFrame, {
+            TextWrapped = true,
+            ZIndex = 3,
+            BorderSizePixel = 0,
+            TextSize = 16,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            BackgroundTransparency = 1,
+            FontFace = Nunito,
+            TextColor3 = Color3.new(1, 1, 1),
+            RichText = true,
+            Size = UDim2.new(1, -12, 0, 40), -- -12 <-- Padding overflow prevention
+        });
+    end
+end
+
+function Konzole.Print(...)
+    local String = "";
+
+    for _, Value in {...} do
+        if (FilterTostring and (type(Value) == "table" or type(Value) == "userdata")) then
+            local Metatable = getrawmetatable(Value);
+            if (Metatable and Metatable.__tostring) then
+                String ..= "[__tostring detected] ";
+                continue;
+            end
+        end
+
+        String = string.format(String.."%* ", Value);
+    end
+
+    local Label = Konzole.GetLabel();
+    Label.Text = `{Timestamps and "<b>"..GetTimestamp().."</b>\t" or ""}{String}`
+    Label.Size = UDim2.fromOffset(Label.AbsoluteSize.X, Label.TextBounds.Y);
+    Label.Parent = ScrollingFrame;
+
+    if (AutoScrolling) then
+        ScrollingFrame.CanvasPosition = Vector2.new(0, ScrollingFrame.AbsoluteCanvasSize.Y - ScrollingFrame.AbsoluteWindowSize.Y);
+    end
+end
+
+function Konzole.Printp(Prefix, ...)
+    local String = "";
+
+    for _, Value in {...} do
+        if (FilterTostring and (type(Value) == "table" or type(Value) == "userdata")) then
+            local Metatable = getrawmetatable(Value);
+            if (Metatable and Metatable.__tostring) then
+                String ..= "[__tostring detected] ";
+                continue;
+            end
+        end
+
+        String = string.format(String.."%* ", Value);
+    end
+
+    local Label = Konzole.GetLabel();
+    Label.Text = `{Timestamps and GetTimestamp().."\t" or ""}<b><font color="#85FF00"> {Prefix}: </font></b>{String}`
+    Label.Size = UDim2.fromOffset(Label.AbsoluteSize.X, Label.TextBounds.Y);
+    Label.Parent = ScrollingFrame;
+
+    if (AutoScrolling) then
+        ScrollingFrame.CanvasPosition = Vector2.new(0, ScrollingFrame.AbsoluteCanvasSize.Y - ScrollingFrame.AbsoluteWindowSize.Y);
+    end
+end
+
+function Konzole.Clear()
+    for _, Object in ScrollingFrame:GetChildren() do
+        if (Object.ClassName == "TextLabel") then
+            Object.Parent = LabelsFolder;
+            table.insert(LabelPool, Object);
+        end
+    end
+end
+
+Konzole.clear = Konzole.Clear;
+Konzole.print = Konzole.Print;
+Konzole.printp = Konzole.Printp;
+
+Signal.new(InputService.InputBegan:Connect(function(Input, GPE)
+    if (Input.KeyCode == Enum.KeyCode.Delete) then
+        Element.Fade(ScreenGui);
+    end
+end));
+
+Element.AddHover(ClearButton);
+Element.AddHover(CloseLabel);
+
+Element.AddHover(AutoScrollLabel, function(Hovering)
+    TooltipState = Hovering;
+    
+    if (Hovering) then
+        TooltipLabel.Text = "Auto scrolls to bottom when somethings printed";
+        TooltipBody.Size = UDim2.fromOffset(TooltipLabel.AbsoluteSize.X, TooltipLabel.TextBounds.Y) + UDim2.fromOffset(12, 12); -- Don't forget the padding :3
+    end
+
+    TooltipBody.Visible = Hovering;
+end);
+
+Element.AddHover(FilterLabel, function(Hovering)
+    TooltipState = Hovering;
+    
+    if (Hovering) then
+        TooltipLabel.Text = "Filters out values that has __tostring metamethod";
+        TooltipBody.Size = UDim2.fromOffset(TooltipLabel.AbsoluteSize.X, TooltipLabel.TextBounds.Y) + UDim2.fromOffset(12, 12); -- Don't forget the padding :3
+    end
+
+    TooltipBody.Visible = Hovering;
+end);
+
+Element.AddHover(TimestampLabel, function(Hovering)
+    TooltipState = Hovering;
+
+    if (Hovering) then
+        TooltipLabel.Text = "Show timestamps on printed values";
+        TooltipBody.Size = UDim2.fromOffset(TooltipLabel.AbsoluteSize.X, TooltipLabel.TextBounds.Y) + UDim2.fromOffset(12, 12); -- Don't forget the padding :3
+    end
+
+    TooltipBody.Visible = Hovering;
+end);
+
+Signal.new(AutoScrollButton.Activated:Connect(function()
+    AutoScrolling = (not AutoScrolling);
+
+    if (AutoScrolling) then
+        local Color = Color3.fromRGB(133, 255, 0);
+        Element[AutoScrollLabel][4] = Color;
+        AutoScrollLabel.TextColor3 = Color;
+    else
+        local Color = Color3.fromRGB(204, 204, 204);
+        Element[AutoScrollLabel][4] = Color;
+        AutoScrollLabel.TextColor3 = Color;
+    end
+end));
+
+Signal.new(FilterButton.Activated:Connect(function()
+    FilterTostring = (not FilterTostring);
+
+    if (FilterTostring) then
+        local Color = Color3.fromRGB(133, 255, 0);
+        Element[FilterLabel][4] = Color;
+        FilterLabel.TextColor3 = Color;
+    else
+        local Color = Color3.fromRGB(204, 204, 204);
+        Element[FilterLabel][4] = Color;
+        FilterLabel.TextColor3 = Color;
+    end
+end));
+
+Signal.new(TimestampButton.Activated:Connect(function()
+    Timestamps = (not Timestamps);
+
+    if (Timestamps) then
+        local Color = Color3.fromRGB(133, 255, 0);
+        Element[TimestampLabel][4] = Color;
+        TimestampLabel.TextColor3 = Color;
+    else
+        local Color = Color3.fromRGB(204, 204, 204);
+        Element[TimestampLabel][4] = Color;
+        TimestampLabel.TextColor3 = Color;
+    end
+end));
+
+Signal.new(CloseButton.Activated:Connect(function()
+    Element.Fade(ScreenGui);
+    Signal.Shutdown();
+    task.wait(FADE_TIME);
+    getgenv().Konzole = nil;
+    ScreenGui:Destroy();
+end));
+
+Signal.new(ClearButton.Activated:Connect(function()
+    Konzole.Clear();
+end));
+
+Signal.new(RunService.PostSimulation:Connect(function()
+    if (TooltipState) then
+        local MousePosition = InputService.GetMouseLocation(InputService);
+        TooltipBody.Position = UDim2.fromOffset(MousePosition.X + 8 + TooltipBody.AbsoluteSize.X / 2, MousePosition.Y + 8 + TooltipBody.AbsoluteSize.Y / 2) - InsetU2;
+    end
+end));
+
+getgenv().Konzole = Konzole;
