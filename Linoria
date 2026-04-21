@@ -1,6 +1,10 @@
--- Linoria | Edit 13.04.2026
+-- Linoria | Edit 21.04.2026
 -- Changelog
---     Added getcustomasset to avoid detections :P
+--     Added cloneref check to avoid errors
+
+local cloneref = cloneref or function(...)
+    return ...;
+end
 
 local InputService = cloneref(game:GetService('UserInputService'));
 local TextService = cloneref(game:GetService('TextService'));
